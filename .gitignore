@@ -1,0 +1,73 @@
+# Laravel specific
+/vendor/
+/node_modules/
+/public/hot
+/public/storage
+/storage/*.key
+.env
+.env.backup
+.env.production
+.phpunit.result.cache
+Homestead.json
+Homestead.yaml
+auth.json
+npm-debug.log
+yarn-error.log
+
+# IDE specific
+/.idea
+/.vscode
+*.swp
+*.swo
+*~
+.project
+.settings/
+.classpath
+*.sublime-project
+*.sublime-workspace
+
+# OS specific
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Laravel Mix
+/public/css/
+/public/js/
+/public/mix-manifest.json
+/public/build/
+
+# Laravel Sail
+.phpunit.result.cache
+docker-compose.override.yml
+
+# Testing
+/coverage
+.phpunit.cache
+
+# Logs
+/storage/logs/*
+*.log
+
+# Cache
+/bootstrap/cache/*
+!/bootstrap/cache/.gitignore
+
+# Sessions
+/storage/framework/sessions/*
+!/storage/framework/sessions/.gitignore
+
+# Compiled files
+/public/build
+/public/hot
+
+# Laravel Telescope
+/storage/telescope/*
+
+# Laravel Horizon
+/storage/horizon/*
+
+# Temporary files
+*.tmp
+*.temp
+*.cache
