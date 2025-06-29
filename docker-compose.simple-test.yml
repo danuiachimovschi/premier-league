@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  php-test:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    volumes:
+      - .:/app
+    environment:
+      APP_ENV: testing
+      DB_CONNECTION: sqlite
+      DB_DATABASE: ":memory:"
+      DB_READ_DATABASE: ":memory:"
+      DB_WRITE_DATABASE: ":memory:"
+    working_dir: /app
+    command: vendor/bin/phpunit

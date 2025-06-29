@@ -1,0 +1,103 @@
+version: '3.8'
+
+services:
+  php-test:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    volumes:
+      - .:/app
+      - /app/vendor
+    environment:
+      - APP_ENV=testing
+      - DB_CONNECTION=mysql
+      - DB_HOST=mysql-test
+      - DB_PORT=3306
+      - DB_DATABASE=premier_league_test
+      - DB_USERNAME=test_user
+      - DB_PASSWORD=test_password
+      # Read database configuration
+      - DB_READ_HOST=mysql-read-test
+      - DB_READ_PORT=3306
+      - DB_READ_DATABASE=premier_league_test_read
+      - DB_READ_USERNAME=read_user
+      - DB_READ_PASSWORD=read_password
+      # Write database configuration  
+      - DB_WRITE_HOST=mysql-write-test
+      - DB_WRITE_PORT=3306
+      - DB_WRITE_DATABASE=premier_league_test_write
+      - DB_WRITE_USERNAME=write_user
+      - DB_WRITE_PASSWORD=write_password
+    depends_on:
+      mysql-test:
+        condition: service_healthy
+      mysql-read-test:
+        condition: service_healthy
+      mysql-write-test:
+        condition: service_healthy
+    command: vendor/bin/phpunit
+    networks:
+      - test-network
+
+  mysql-test:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: premier_league_test
+      MYSQL_USER: test_user
+      MYSQL_PASSWORD: test_password
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql-test-data:/var/lib/mysql
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  mysql-read-test:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: premier_league_test_read
+      MYSQL_USER: read_user
+      MYSQL_PASSWORD: read_password
+    ports:
+      - "3308:3306"
+    volumes:
+      - mysql-read-test-data:/var/lib/mysql
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  mysql-write-test:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: premier_league_test_write
+      MYSQL_USER: write_user
+      MYSQL_PASSWORD: write_password
+    ports:
+      - "3309:3306"
+    volumes:
+      - mysql-write-test-data:/var/lib/mysql
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+volumes:
+  mysql-test-data:
+  mysql-read-test-data:
+  mysql-write-test-data:
+
+networks:
+  test-network:
+    driver: bridge

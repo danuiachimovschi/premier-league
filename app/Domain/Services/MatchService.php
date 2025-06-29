@@ -4,30 +4,38 @@ declare(strict_types=1);
 
 namespace App\Domain\Services;
 
-use App\Domain\Contracts\Repositories\GameRepositoryInterface;
-use App\Domain\Contracts\Repositories\SeasonRepositoryInterface;
-use App\Domain\Contracts\Repositories\TeamSeasonRepositoryInterface;
+use App\Domain\Contracts\Repositories\GameReadRepositoryInterface;
+use App\Domain\Contracts\Repositories\GameWriteRepositoryInterface;
+use App\Domain\Contracts\Repositories\SeasonReadRepositoryInterface;
+use App\Domain\Contracts\Repositories\SeasonWriteRepositoryInterface;
+use App\Domain\Contracts\Repositories\TeamSeasonReadRepositoryInterface;
+use App\Domain\Contracts\Repositories\TeamSeasonWriteRepositoryInterface;
 use App\Domain\Contracts\Services\ChampionshipServiceInterface;
 use App\Domain\Contracts\Services\MatchServiceInterface;
 use App\Domain\Contracts\Services\MatchSimulatorServiceInterface;
 use App\Domain\Models\Game;
 use App\Domain\Models\Season;
+use App\Domain\Exceptions\SeasonException;
+use App\Domain\Exceptions\MatchException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class MatchService implements MatchServiceInterface
 {
     public function __construct(
-        private readonly GameRepositoryInterface $gameRepository,
-        private readonly SeasonRepositoryInterface $seasonRepository,
-        private readonly TeamSeasonRepositoryInterface $teamSeasonRepository,
+        private readonly GameReadRepositoryInterface $gameReadRepository,
+        private readonly GameWriteRepositoryInterface $gameWriteRepository,
+        private readonly SeasonReadRepositoryInterface $seasonReadRepository,
+        private readonly SeasonWriteRepositoryInterface $seasonWriteRepository,
+        private readonly TeamSeasonReadRepositoryInterface $teamSeasonReadRepository,
+        private readonly TeamSeasonWriteRepositoryInterface $teamSeasonWriteRepository,
         private readonly MatchSimulatorServiceInterface $matchSimulator,
         private readonly ChampionshipServiceInterface $championshipService
     ) {}
 
     public function getMatchesByWeek(Season $season): Collection
     {
-        return $this->gameRepository
+        return $this->gameReadRepository
             ->getWithRelations($season, ['homeTeam', 'awayTeam'])
             ->groupBy('week')
             ->map(function ($weekMatches, $week) {
@@ -41,21 +49,21 @@ class MatchService implements MatchServiceInterface
     public function generateWeek(Season $season): array
     {
         if ($season->status !== 'active') {
-            throw new \InvalidArgumentException('Season is not active');
+            throw SeasonException::notActive();
         }
 
         if ($season->isCompleted()) {
-            throw new \InvalidArgumentException('Season is already completed');
+            throw SeasonException::alreadyCompleted();
         }
 
         return DB::transaction(function () use ($season) {
             $nextWeek = $season->current_week + 1;
-            $matches = $this->gameRepository
+            $matches = $this->gameReadRepository
                 ->getBySeasonAndWeek($season, $nextWeek)
                 ->filter(fn($match) => !$match->is_played);
 
             if ($matches->isEmpty()) {
-                throw new \RuntimeException('No matches found for week ' . $nextWeek);
+                throw SeasonException::noMatchesFound($nextWeek);
             }
 
             foreach ($matches as $match) {
@@ -66,11 +74,11 @@ class MatchService implements MatchServiceInterface
             if ($season->current_week >= $season->total_weeks) {
                 $season->status = 'completed';
             }
-            $this->seasonRepository->save($season);
+            $this->seasonWriteRepository->save($season);
 
             $this->championshipService->updateProbabilities($season);
 
-            $updatedSeason = $this->seasonRepository->findWithRelations($season->id, ['teamSeasons.team']);
+            $updatedSeason = $this->seasonReadRepository->findWithRelations($season->id, ['teamSeasons.team']);
             
             return [
                 'week' => $nextWeek,
@@ -83,7 +91,7 @@ class MatchService implements MatchServiceInterface
     public function updateMatch(Game $match, array $data): Game
     {
         if ($match->season->status === 'completed') {
-            throw new \InvalidArgumentException('Cannot update matches in a completed season');
+            throw MatchException::cannotUpdateCompletedSeason();
         }
 
         return DB::transaction(function () use ($match, $data) {
@@ -91,7 +99,7 @@ class MatchService implements MatchServiceInterface
             $oldHomeGoals = $match->home_goals;
             $oldAwayGoals = $match->away_goals;
 
-            $match = $this->gameRepository->update($match, [
+            $match = $this->gameWriteRepository->update($match, [
                 'home_goals' => $data['home_goals'],
                 'away_goals' => $data['away_goals'],
                 'is_played' => true,
@@ -99,8 +107,8 @@ class MatchService implements MatchServiceInterface
                 'game_statistics' => $data['match_statistics'] ?? $this->generateDefaultStatistics(),
             ]);
 
-            $homeTeamSeason = $this->teamSeasonRepository->findByTeamAndSeason($match->homeTeam, $match->season);
-            $awayTeamSeason = $this->teamSeasonRepository->findByTeamAndSeason($match->awayTeam, $match->season);
+            $homeTeamSeason = $this->teamSeasonReadRepository->findByTeamAndSeason($match->homeTeam, $match->season);
+            $awayTeamSeason = $this->teamSeasonReadRepository->findByTeamAndSeason($match->awayTeam, $match->season);
 
             if ($wasPlayed) {
                 $this->revertMatchStats($homeTeamSeason, $oldHomeGoals, $oldAwayGoals, 'home');
@@ -122,7 +130,7 @@ class MatchService implements MatchServiceInterface
     public function simulateAllMatches(Season $season): array
     {
         if ($season->status !== 'active') {
-            throw new \InvalidArgumentException('Season is not active');
+            throw SeasonException::notActive();
         }
 
         return DB::transaction(function () use ($season) {
@@ -133,7 +141,7 @@ class MatchService implements MatchServiceInterface
                 ->get();
 
             if ($unplayedMatches->isEmpty()) {
-                throw new \RuntimeException('No unplayed matches found');
+                throw SeasonException::noMatchesFound(0);
             }
 
             foreach ($unplayedMatches as $match) {

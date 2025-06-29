@@ -4,27 +4,31 @@ declare(strict_types=1);
 
 namespace App\Domain\Services;
 
-use App\Domain\Contracts\Repositories\SeasonRepositoryInterface;
-use App\Domain\Contracts\Repositories\TeamRepositoryInterface;
-use App\Domain\Contracts\Repositories\TeamSeasonRepositoryInterface;
+use App\Domain\Contracts\Repositories\SeasonReadRepositoryInterface;
+use App\Domain\Contracts\Repositories\SeasonWriteRepositoryInterface;
+use App\Domain\Contracts\Repositories\TeamReadRepositoryInterface;
+use App\Domain\Contracts\Repositories\TeamSeasonWriteRepositoryInterface;
 use App\Domain\Contracts\Services\MatchGeneratorServiceInterface;
 use App\Domain\Contracts\Services\SeasonServiceInterface;
 use App\Domain\Models\Season;
+use App\Domain\Exceptions\SeasonException;
+use App\Domain\Exceptions\TeamException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class SeasonService implements SeasonServiceInterface
 {
     public function __construct(
-        private readonly SeasonRepositoryInterface $seasonRepository,
-        private readonly TeamRepositoryInterface $teamRepository,
-        private readonly TeamSeasonRepositoryInterface $teamSeasonRepository,
+        private readonly SeasonReadRepositoryInterface $seasonReadRepository,
+        private readonly SeasonWriteRepositoryInterface $seasonWriteRepository,
+        private readonly TeamReadRepositoryInterface $teamReadRepository,
+        private readonly TeamSeasonWriteRepositoryInterface $teamSeasonWriteRepository,
         private readonly MatchGeneratorServiceInterface $matchGenerator
     ) {}
 
     public function getActiveSeasons(): Collection
     {
-        $seasons = $this->seasonRepository->getActive();
+        $seasons = $this->seasonReadRepository->getActive();
         $seasons->load(['teamSeasons.team']);
         return $seasons;
     }
@@ -32,20 +36,20 @@ class SeasonService implements SeasonServiceInterface
     public function createSeason(array $data): Season
     {
         return DB::transaction(function () use ($data) {
-            $season = $this->seasonRepository->create([
+            $season = $this->seasonWriteRepository->create([
                 'name' => $data['name'],
                 'status' => 'active',
                 'current_week' => 0,
                 'total_weeks' => 6,
             ]);
 
-            $teams = $this->teamRepository->all()->take(4);
+            $teams = $this->teamReadRepository->all()->take(4);
             if ($teams->count() < 4) {
-                throw new \RuntimeException('Not enough teams available. Please seed teams first.');
+                throw TeamException::insufficientTeams(4, $teams->count());
             }
 
             foreach ($teams as $team) {
-                $this->teamSeasonRepository->create([
+                $this->teamSeasonWriteRepository->create([
                     'team_id' => $team->id,
                     'season_id' => $season->id,
                     'championship_probability' => 25.0,
@@ -54,13 +58,13 @@ class SeasonService implements SeasonServiceInterface
 
             $this->matchGenerator->generateSeasonMatches($season);
 
-            return $this->seasonRepository->findWithRelations($season->id, ['teamSeasons.team', 'matches']);
+            return $this->seasonReadRepository->findWithRelations($season->id, ['teamSeasons.team', 'matches']);
         });
     }
 
     public function getSeasonWithDetails(Season $season): Season
     {
-        return $this->seasonRepository->findWithRelations(
+        return $this->seasonReadRepository->findWithRelations(
             $season->id,
             ['teamSeasons.team', 'matches.homeTeam', 'matches.awayTeam']
         );
@@ -69,12 +73,12 @@ class SeasonService implements SeasonServiceInterface
     public function resetSeason(Season $season): Season
     {
         if ($season->status === 'completed') {
-            throw new \InvalidArgumentException('Cannot reset a completed season');
+            throw SeasonException::alreadyCompleted();
         }
 
         return DB::transaction(function () use ($season) {
-            $this->seasonRepository->resetStatistics($season);
-            return $this->seasonRepository->findWithRelations($season->id, ['teamSeasons.team']);
+            $this->seasonWriteRepository->resetStatistics($season);
+            return $this->seasonReadRepository->findWithRelations($season->id, ['teamSeasons.team']);
         });
     }
 }

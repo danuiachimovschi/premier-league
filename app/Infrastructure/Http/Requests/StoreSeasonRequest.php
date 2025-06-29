@@ -6,13 +6,8 @@ namespace App\Infrastructure\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class StoreSeasonRequest extends FormRequest
+class StoreSeasonRequest extends BaseRequest
 {
-    public function authorize(): bool
-    {
-        return true;
-    }
-
     public function rules(): array
     {
         return [

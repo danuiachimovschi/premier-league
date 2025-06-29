@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Services;
 
-use App\Domain\Contracts\Repositories\TeamRepositoryInterface;
+use App\Domain\Contracts\Repositories\TeamReadRepositoryInterface;
 use App\Domain\Contracts\Services\TeamServiceInterface;
 use App\Domain\Models\Team;
 use Illuminate\Support\Collection;
@@ -12,12 +12,12 @@ use Illuminate\Support\Collection;
 class TeamService implements TeamServiceInterface
 {
     public function __construct(
-        private readonly TeamRepositoryInterface $teamRepository,
+        private readonly TeamReadRepositoryInterface $teamReadRepository,
     ) {}
 
     public function getAllTeams(): Collection
     {
-        return $this->teamRepository->all();
+        return $this->teamReadRepository->all();
     }
 
     public function getTeamWithStats(Team $team): array

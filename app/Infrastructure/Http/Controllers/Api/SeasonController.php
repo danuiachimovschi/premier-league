@@ -7,13 +7,12 @@ namespace App\Infrastructure\Http\Controllers\Api;
 use App\Domain\Contracts\Services\SeasonServiceInterface;
 use App\Domain\Models\Season;
 use App\Infrastructure\Http\Requests\StoreSeasonRequest;
-use App\Infrastructure\Http\Resources\SeasonResource;
-use Exception;
+use App\Infrastructure\Http\Transformers\SeasonTransformer;
 use Illuminate\Http\JsonResponse;
-use InvalidArgumentException;
-use RuntimeException;
+use Illuminate\Http\Response;
+use Illuminate\Routing\Controller;
 
-class SeasonController extends BaseController
+class SeasonController extends Controller
 {
     public function __construct(
         private readonly SeasonServiceInterface $seasonService
@@ -22,52 +21,45 @@ class SeasonController extends BaseController
     {
         $seasons = $this->seasonService->getActiveSeasons();
 
-        return $this->successResponse(
-            SeasonResource::collection($seasons)
-        );
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Success',
+            'data' => SeasonTransformer::collection($seasons),
+        ], Response::HTTP_OK);
     }
 
     public function store(StoreSeasonRequest $request): JsonResponse
     {
-        try {
-            $season = $this->seasonService->createSeason([
-                'name' => $request->name,
-            ]);
-            
-            return $this->successResponse(
-                new SeasonResource($season),
-                'Season created successfully',
-                201
-            );
-        } catch (RuntimeException $e) {
-            return $this->errorResponse($e->getMessage(), 400);
-        } catch (Exception $e) {
-            return $this->errorResponse('Failed to create season: ' . $e->getMessage(), 500);
-        }
+        $season = $this->seasonService->createSeason([
+            'name' => $request->name,
+        ]);
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Season created successfully',
+            'data' => new SeasonTransformer($season),
+        ], Response::HTTP_CREATED);
     }
 
     public function show(Season $season): JsonResponse
     {
         $seasonWithDetails = $this->seasonService->getSeasonWithDetails($season);
         
-        return $this->successResponse(
-            new SeasonResource($seasonWithDetails)
-        );
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Success',
+            'data' => new SeasonTransformer($seasonWithDetails),
+        ], Response::HTTP_OK);
     }
 
     public function reset(Season $season): JsonResponse
     {
-        try {
-            $resetSeason = $this->seasonService->resetSeason($season);
-            
-            return $this->successResponse(
-                new SeasonResource($resetSeason),
-                'Season reset successfully'
-            );
-        } catch (InvalidArgumentException $e) {
-            return $this->errorResponse($e->getMessage(), 400);
-        } catch (Exception $e) {
-            return $this->errorResponse('Failed to reset season: ' . $e->getMessage(), 500);
-        }
+        $resetSeason = $this->seasonService->resetSeason($season);
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Season reset successfully',
+            'data' => new SeasonTransformer($resetSeason),
+        ], Response::HTTP_OK);
     }
 }

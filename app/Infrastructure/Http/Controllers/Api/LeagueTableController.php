@@ -6,11 +6,13 @@ namespace App\Infrastructure\Http\Controllers\Api;
 
 use App\Domain\Contracts\Services\LeagueTableServiceInterface;
 use App\Domain\Models\Season;
-use App\Infrastructure\Http\Resources\SeasonResource;
-use App\Infrastructure\Http\Resources\TeamSeasonResource;
+use App\Infrastructure\Http\Transformers\LeagueStandingTransformer;
+use App\Infrastructure\Http\Transformers\SeasonTransformer;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Response;
+use Illuminate\Routing\Controller;
 
-class LeagueTableController extends BaseController
+class LeagueTableController extends Controller
 {
     public function __construct(
         private readonly LeagueTableServiceInterface $leagueTableService
@@ -20,16 +22,15 @@ class LeagueTableController extends BaseController
     {
         $standingsData = $this->leagueTableService->getStandingsWithPositions($season);
         
-        $standings = $standingsData->map(function ($item) {
-            $resource = new TeamSeasonResource($item['team_season']);
-            $resourceArray = $resource->toArray(request());
-            $resourceArray['position'] = $item['position'];
-            return $resourceArray;
-        });
+        $standings = LeagueStandingTransformer::collection($standingsData);
 
-        return $this->successResponse([
-            'season' => new SeasonResource($season),
-            'standings' => $standings,
-        ]);
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Success',
+            'data' => [
+                'season' => new SeasonTransformer($season),
+                'standings' => $standings,
+            ],
+        ], Response::HTTP_OK);
     }
 }

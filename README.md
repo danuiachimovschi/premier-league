@@ -1,5 +1,7 @@
 # PHP Premier League
 
+![Premier League](image.png)
+
 ## Setup
 ```bash
 docker compose up -d

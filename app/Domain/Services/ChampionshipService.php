@@ -6,7 +6,8 @@ use App\Domain\Contracts\Services\ChampionshipServiceInterface;
 use App\Domain\DTOs\MatchResult;
 use App\Domain\DTOs\MatchStatistics;
 use App\Domain\Models\Season;
-use App\Domain\Repositories\InMemoryTeamRepository;
+use App\Domain\Services\TeamStatisticsRepositoryAdapter;
+use App\Domain\Repositories\TeamReadRepositoryInterface;
 use App\Domain\ValueObjects\Goals;
 use App\Domain\ValueObjects\Team as DomainTeam;
 use Illuminate\Support\Facades\Cache;
@@ -15,8 +16,9 @@ class ChampionshipService implements ChampionshipServiceInterface
 {
     private ChampionshipPredictorService $predictor;
 
-    public function __construct()
-    {
+    public function __construct(
+        private readonly ?TeamReadRepositoryInterface $teamRepository = null
+    ) {
         $this->predictor = $this->createPredictorService();
     }
 
@@ -118,9 +120,9 @@ class ChampionshipService implements ChampionshipServiceInterface
             $season->teamSeasons()->with('team')->get()->pluck('team.name')->toArray() :
             ['Arsenal', 'Chelsea', 'Liverpool', 'Manchester City'];
 
-        $teams = array_map(fn($name) => new DomainTeam($name), $teamNames);
-        $teamRepository = new InMemoryTeamRepository($teams);
-        $statisticsService = new TeamStatisticsService($teamRepository);
+        $teamRepositoryAdapter = new TeamStatisticsRepositoryAdapter($this->teamRepository);
+        $teamRepositoryAdapter->initializeTeams($teamNames);
+        $statisticsService = new TeamStatisticsService($teamRepositoryAdapter);
 
         return new ChampionshipPredictorService($statisticsService, 6);
     }

@@ -9,7 +9,7 @@ use App\Domain\DTOs\LeagueTableEntry;
 use App\Domain\DTOs\MatchResult;
 use App\Domain\DTOs\TeamStatistics;
 use App\Domain\Enums\MatchOutcome;
-use App\Domain\Repositories\InMemoryTeamRepository;
+use App\Domain\Services\TeamStatisticsRepositoryAdapter;
 use App\Domain\ValueObjects\Goals;
 use App\Domain\ValueObjects\Points;
 use App\Domain\ValueObjects\Team;
@@ -19,7 +19,7 @@ final class TeamStatisticsService implements StatisticsServiceInterface
     private array $matches = [];
 
     public function __construct(
-        private readonly InMemoryTeamRepository $teamRepository,
+        private readonly TeamStatisticsRepositoryAdapter $teamRepository,
         private readonly float $learningRate = 0.3,
     ) {}
 

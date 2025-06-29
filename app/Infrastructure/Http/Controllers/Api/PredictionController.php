@@ -6,13 +6,13 @@ namespace App\Infrastructure\Http\Controllers\Api;
 
 use App\Domain\Contracts\Services\PredictionServiceInterface;
 use App\Domain\Models\Season;
-use App\Infrastructure\Http\Resources\PredictionResource;
-use App\Infrastructure\Http\Resources\SeasonResource;
-use Exception;
+use App\Infrastructure\Http\Transformers\PredictionTransformer;
+use App\Infrastructure\Http\Transformers\SeasonTransformer;
 use Illuminate\Http\JsonResponse;
-use InvalidArgumentException;
+use Illuminate\Http\Response;
+use Illuminate\Routing\Controller;
 
-class PredictionController extends BaseController
+class PredictionController extends Controller
 {
     public function __construct(
         private readonly PredictionServiceInterface $predictionService
@@ -20,20 +20,18 @@ class PredictionController extends BaseController
 
     public function index(Season $season): JsonResponse
     {
-        try {
-            $data = $this->predictionService->getPredictions($season);
-            
-            return $this->successResponse([
-                'season' => new SeasonResource($season),
-                'predictions' => PredictionResource::collection($data['predictions']),
+        $data = $this->predictionService->getPredictions($season);
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Success',
+            'data' => [
+                'season' => new SeasonTransformer($season),
+                'predictions' => PredictionTransformer::collection($data['predictions']),
                 'history' => $data['history'],
                 'analysis' => $data['analysis'],
-            ]);
-        } catch (InvalidArgumentException $e) {
-            return $this->errorResponse($e->getMessage(), 400);
-        } catch (Exception $e) {
-            return $this->errorResponse('Failed to get predictions: ' . $e->getMessage(), 500);
-        }
+            ],
+        ], Response::HTTP_OK);
     }
 
 }

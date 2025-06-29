@@ -8,6 +8,7 @@ use App\Domain\Contracts\Repositories\TeamSeasonRepositoryInterface;
 use App\Domain\Contracts\Services\ChampionshipServiceInterface;
 use App\Domain\Contracts\Services\PredictionServiceInterface;
 use App\Domain\Models\Season;
+use App\Domain\Exceptions\SeasonException;
 use Illuminate\Support\Collection;
 
 class PredictionService implements PredictionServiceInterface
@@ -20,7 +21,7 @@ class PredictionService implements PredictionServiceInterface
     public function getPredictions(Season $season): array
     {
         if ($season->current_week === 0) {
-            throw new \InvalidArgumentException('No predictions available. Play at least one week first.');
+            throw SeasonException::noMatchesFound(0);
         }
 
         $predictions = $this->teamSeasonRepository

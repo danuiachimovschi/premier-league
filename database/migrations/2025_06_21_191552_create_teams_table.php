@@ -13,8 +13,8 @@ return new class extends Migration
         Schema::create($this->table, function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->string('name')->unique();
-            $table->decimal('attack_strength', 3, 2)->default(1.0);
-            $table->decimal('defense_strength', 3, 2)->default(1.0);
+            $table->decimal('attack_strength', 5, 2)->default(1.0);
+            $table->decimal('defense_strength', 5, 2)->default(1.0);
             $table->string('logo_url')->nullable();
             $table->timestamps();
         });

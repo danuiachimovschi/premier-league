@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-namespace App\Infrastructure\Http\Resources;
+namespace App\Infrastructure\Http\Transformers;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class GameResource extends JsonResource
+class GameTransformer extends JsonResource
 {
     public function toArray(Request $request): array
     {
         return [
             'id' => $this->id,
             'week' => $this->week,
-            'home_team' => new TeamResource($this->whenLoaded('homeTeam')),
-            'away_team' => new TeamResource($this->whenLoaded('awayTeam')),
+            'home_team' => new TeamTransformer($this->whenLoaded('homeTeam')),
+            'away_team' => new TeamTransformer($this->whenLoaded('awayTeam')),
             'home_goals' => $this->home_goals,
             'away_goals' => $this->away_goals,
             'is_played' => $this->is_played,

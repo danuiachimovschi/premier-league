@@ -54,4 +54,5 @@ class Season extends Model
     {
         return max(0, $this->total_weeks - $this->current_week);
     }
+
 }

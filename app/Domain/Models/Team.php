@@ -48,4 +48,5 @@ class Team extends Model
             })
             ->first();
     }
+
 }

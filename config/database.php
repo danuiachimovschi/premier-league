@@ -31,6 +31,28 @@ return [
 
     'connections' => [
 
+        'sqlite_read' => [
+            'driver' => 'sqlite',
+            'url' => env('DB_READ_URL'),
+            'database' => env('DB_READ_DATABASE', env('DB_DATABASE', database_path('database.sqlite'))),
+            'prefix' => '',
+            'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
+            'busy_timeout' => null,
+            'journal_mode' => null,
+            'synchronous' => null,
+        ],
+
+        'sqlite_write' => [
+            'driver' => 'sqlite',
+            'url' => env('DB_WRITE_URL'),
+            'database' => env('DB_WRITE_DATABASE', env('DB_DATABASE', database_path('database.sqlite'))),
+            'prefix' => '',
+            'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
+            'busy_timeout' => null,
+            'journal_mode' => null,
+            'synchronous' => null,
+        ],
+
         'sqlite' => [
             'driver' => 'sqlite',
             'url' => env('DB_URL'),
@@ -40,6 +62,46 @@ return [
             'busy_timeout' => null,
             'journal_mode' => null,
             'synchronous' => null,
+        ],
+
+        'mysql_read' => [
+            'driver' => 'mysql',
+            'url' => env('DB_READ_URL'),
+            'host' => env('DB_READ_HOST', env('DB_HOST', '127.0.0.1')),
+            'port' => env('DB_READ_PORT', env('DB_PORT', '3306')),
+            'database' => env('DB_READ_DATABASE', env('DB_DATABASE', 'laravel')),
+            'username' => env('DB_READ_USERNAME', env('DB_USERNAME', 'root')),
+            'password' => env('DB_READ_PASSWORD', env('DB_PASSWORD', '')),
+            'unix_socket' => env('DB_READ_SOCKET', env('DB_SOCKET', '')),
+            'charset' => env('DB_CHARSET', 'utf8mb4'),
+            'collation' => env('DB_COLLATION', 'utf8mb4_unicode_ci'),
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+            'options' => extension_loaded('pdo_mysql') ? array_filter([
+                PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+            ]) : [],
+        ],
+
+        'mysql_write' => [
+            'driver' => 'mysql',
+            'url' => env('DB_WRITE_URL'),
+            'host' => env('DB_WRITE_HOST', env('DB_HOST', '127.0.0.1')),
+            'port' => env('DB_WRITE_PORT', env('DB_PORT', '3306')),
+            'database' => env('DB_WRITE_DATABASE', env('DB_DATABASE', 'laravel')),
+            'username' => env('DB_WRITE_USERNAME', env('DB_USERNAME', 'root')),
+            'password' => env('DB_WRITE_PASSWORD', env('DB_PASSWORD', '')),
+            'unix_socket' => env('DB_WRITE_SOCKET', env('DB_SOCKET', '')),
+            'charset' => env('DB_CHARSET', 'utf8mb4'),
+            'collation' => env('DB_COLLATION', 'utf8mb4_unicode_ci'),
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+            'options' => extension_loaded('pdo_mysql') ? array_filter([
+                PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+            ]) : [],
         ],
 
         'mysql' => [

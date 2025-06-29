@@ -78,4 +78,5 @@ class Game extends Model
 
         return 'draw';
     }
+
 }

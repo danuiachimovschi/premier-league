@@ -9,15 +9,14 @@ use App\Domain\Models\Game;
 use App\Domain\Models\Season;
 use App\Infrastructure\Http\Requests\GenerateWeekRequest;
 use App\Infrastructure\Http\Requests\UpdateMatchRequest;
-use App\Infrastructure\Http\Resources\GameCollection;
-use App\Infrastructure\Http\Resources\GameResource;
-use App\Infrastructure\Http\Resources\SeasonResource;
-use Exception;
+use App\Infrastructure\Http\Transformers\Collections\GameCollection;
+use App\Infrastructure\Http\Transformers\GameTransformer;
+use App\Infrastructure\Http\Transformers\SeasonTransformer;
 use Illuminate\Http\JsonResponse;
-use InvalidArgumentException;
-use RuntimeException;
+use Illuminate\Http\Response;
+use Illuminate\Routing\Controller;
 
-class MatchController extends BaseController
+class MatchController extends Controller
 {
     public function __construct(
         private readonly MatchServiceInterface $matchService
@@ -33,63 +32,54 @@ class MatchController extends BaseController
                 ];
             });
 
-        return $this->successResponse($formattedMatches);
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Success',
+            'data' => $formattedMatches,
+        ], Response::HTTP_OK);
     }
 
     public function generateWeek(GenerateWeekRequest $request, Season $season): JsonResponse
     {
-        try {
-            $result = $this->matchService->generateWeek($season);
-            
-            return $this->successResponse([
+        $result = $this->matchService->generateWeek($season);
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Week ' . $result['week'] . ' matches generated successfully',
+            'data' => [
                 'week' => $result['week'],
                 'matches' => new GameCollection($result['matches']),
-                'season' => new SeasonResource($result['season']),
-            ], 'Week ' . $result['week'] . ' matches generated successfully');
-        } catch (InvalidArgumentException $e) {
-            return $this->errorResponse($e->getMessage(), 400);
-        } catch (RuntimeException $e) {
-            return $this->errorResponse($e->getMessage(), 404);
-        } catch (Exception $e) {
-            return $this->errorResponse('Failed to generate matches: ' . $e->getMessage(), 500);
-        }
+                'season' => new SeasonTransformer($result['season']),
+            ],
+        ], Response::HTTP_OK);
     }
 
     public function update(UpdateMatchRequest $request, Game $match): JsonResponse
     {
-        try {
-            $updatedMatch = $this->matchService->updateMatch($match, [
-                'home_goals' => $request->home_goals,
-                'away_goals' => $request->away_goals,
-                'match_statistics' => $request->match_statistics,
-            ]);
-            
-            return $this->successResponse(
-                new GameResource($updatedMatch),
-                'Match updated successfully'
-            );
-        } catch (InvalidArgumentException $e) {
-            return $this->errorResponse($e->getMessage(), 400);
-        } catch (Exception $e) {
-            return $this->errorResponse('Failed to update match: ' . $e->getMessage(), 500);
-        }
+        $updatedMatch = $this->matchService->updateMatch($match, [
+            'home_goals' => $request->home_goals,
+            'away_goals' => $request->away_goals,
+            'match_statistics' => $request->match_statistics,
+        ]);
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Match updated successfully',
+            'data' => new GameTransformer($updatedMatch),
+        ], Response::HTTP_OK);
     }
 
     public function simulateAll(Season $season): JsonResponse
     {
-        try {
-            $result = $this->matchService->simulateAllMatches($season);
-            
-            return $this->successResponse([
+        $result = $this->matchService->simulateAllMatches($season);
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => 'All matches simulated successfully',
+            'data' => [
                 'matches_simulated' => $result['matches_simulated'],
-                'season' => new SeasonResource($result['season']),
-            ], 'All matches simulated successfully');
-        } catch (InvalidArgumentException $e) {
-            return $this->errorResponse($e->getMessage(), 400);
-        } catch (RuntimeException $e) {
-            return $this->errorResponse($e->getMessage(), 404);
-        } catch (Exception $e) {
-            return $this->errorResponse('Failed to simulate matches: ' . $e->getMessage(), 500);
-        }
+                'season' => new SeasonTransformer($result['season']),
+            ],
+        ], Response::HTTP_OK);
     }
 }
